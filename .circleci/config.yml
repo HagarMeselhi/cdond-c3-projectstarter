@@ -1,6 +1,6 @@
 version: 2.1
 
-commands:deploy
+commands: 
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
     steps:
@@ -165,3 +165,5 @@ workflows:
             branches:
               only: [master]
       
+
+
