@@ -13,8 +13,24 @@ commands:
           name: Destroy frontend
           when: on_fail
           command: |
-            aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}   
-            
+            aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
+
+     
+   revert-migrations:
+    description: Revert the last migration if successfully run in the current workflow.
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            # curl command here to see if there was a successful migration associated with the workflow id, store result in "SUCCESS" variable
+            SUCCESS=$(curl --insecure https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7})
+            if(( $SUCCESS==1 )); 
+            then
+              cd backend
+              npm install
+              npm run migrations:revert
+              fi          
            
 jobs:
   build-frontend:
