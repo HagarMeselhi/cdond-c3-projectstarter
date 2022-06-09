@@ -2,7 +2,7 @@
   - name: "show remote environment"
     shell: env
 
-  - name: "copy backend"
+  - name: "copy backend binaries"
     become: yes
     synchronize:
       src: ../../backend/dist
