@@ -204,50 +204,41 @@ jobs:
       # Here's where you will add some code to rollback on failure
 
   run-migrations:
-    docker:
-      - image: cimg/node:13.8.0
-
+    executor: node
     steps:
       - checkout
-      - restore_cache:
-          keys: [backend-build]
-
-      - run: 
-          name: Install AWS dependencies
-          command: | 
-            sudo apt upgrade && sudo apt install
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install AWS CLI dependencies
+          working_directory: /tmp
+          command: |
+            sudo apt-get update && sudo apt-get install -yy less
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
       - run:
           name: Run migrations
+          working_directory: ./backend
+          no_output_timeout: 30m
           command: |
-            cd backend
-            npm install 
-            npm i
-            npm run build 
-            echo "hello"
-            npm run migrations > migrations_dump.txt
-            echo "hello"
-            cat migrations_dump.txt
+            npm run migrations > migration_status
       - run:
-          name: Send migration results to KVDB
+          name: Send migration results to memstash
+          working_directory: ./backend
           command: |
-            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
-            cat ${CIRCLE_WORKFLOW_ID:0:7}
+            if grep -q "has been executed successfully" migration_status
             then
-              curl https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d  1
-              echo $(curl --insecure  https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7})
+              echo "DB migration was successful, will update memstash..."
+              curl -H "Content-Type: text/plain" -H "token: d5622cb1-8265-4b43-a16c-5b0b124c3dfe" --request PUT --data "success" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             else
-              # This part was created as revert migration will fail because the key in KVDB will not be created, that's why it is created now for both scnarios.
-              curl https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d  0
-              echo $(curl --insecure  https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7})
+              echo "DB migration failed, please verify setup! Probably the database already exists. Verify setup!"
+              curl -H "Content-Type: text/plain" -H "token: d5622cb1-8265-4b43-a16c-5b0b124c3dfe" --request PUT --data "failure" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             fi
-      
-      #     paths: [backend/node_modules]
-      #     key: backend-build
-     # Here's where you will add some code to rollback on failure      
-      - destroy-environment
+            echo "WorkflowID=${CIRCLE_WORKFLOW_ID:0:7}"
+      - destroy_environment:
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
+          when: on_fail
   deploy-frontend:
     docker:
       - image: cimg/node:13.8.0
