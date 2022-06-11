@@ -2,6 +2,27 @@ version: 2.1
 
 commands:
 
+  destroy-environment:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    
+    steps:
+      - run:
+          name: Destroy backend
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}
+      - run:  
+          name: Destroy frontend
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}   
+      - run:  
+          name: Destroy S3 bucket        
+          When: on_fail
+          command: |
+            aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+            aws s3 rb s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --force 
+
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
     steps:
@@ -147,6 +168,8 @@ jobs:
           paths:
             - .circleci/ansible/inventory.txt 
 
+      - destroy-environment
+
 
 
   configure-infrastructure:
@@ -175,7 +198,8 @@ jobs:
             cd .circleci/ansible
             cat inventory.txt
             ansible-playbook -i inventory.txt configure-server.yml
-      # Here's where you will add some code to rollback on failure 
+      # Here's where you will add some code to rollback on failure
+      - destroy-environment 
 
   run-migrations:
     docker:
@@ -220,7 +244,8 @@ jobs:
       
       #     paths: [backend/node_modules]
       #     key: backend-build
-     # Here's where you will add some code to rollback on failure      
+     # Here's where you will add some code to rollback on failure
+     - destroy-environment      
 
   deploy-frontend:
     docker:
@@ -260,7 +285,7 @@ jobs:
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             
-
+      - destroy-environment
       - revert-migrations
   deploy-backend:
     docker:
@@ -303,7 +328,7 @@ jobs:
             echo "Contents  of the inventory.txt file is :"
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml
-
+      - destroy-environment
       - revert-migrations  
 
   smoke-test:
@@ -346,11 +371,11 @@ jobs:
               if curl -s ${URL} | grep "Welcome"
                then
               # Change this to 0 after the job fails
-              return 1
+              return 
               else
               return 1
               fi
-
+      - destroy-environment
       - revert-migrations
 
 workflows:
