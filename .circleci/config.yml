@@ -274,7 +274,7 @@ jobs:
             
       - destroy-environment
       - revert-migrations
-  deploy-backend:
+   deploy-backend:
     executor: python
     steps:
       - checkout
