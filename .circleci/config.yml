@@ -1,17 +1,4 @@
 version: 2.1
-
-executors:
-  node:
-    docker:
-      - image: circleci/node:13.8.0
-  python:
-    docker:
-      - image: python:3.9.0-alpine
-  aws:
-    docker:
-      - image: amazon/aws-cli
-
-
 commands:
   destroy_environment:
     description: Destroy Cloud Formation Stacks and infrastructure
@@ -185,13 +172,7 @@ jobs:
           name: Check Backend against security vulnerabilities
           working_directory: ./backend
           command: npm audit  fix --audit-level=critical --force
-      - slack/notify:
-          event: fail
-          mentions: '@OMAR'
-          template: basic_fail_1
-      - slack/notify:
-          event: pass
-          template: success_tagged_deploy_1
+
   deploy-infrastructure:
     executor: aws
     steps:
