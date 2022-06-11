@@ -200,7 +200,6 @@ jobs:
             ansible-playbook -i inventory.txt configure-server.yml
       # Here's where you will add some code to rollback on failure
       - destroy-environment 
-
   run-migrations:
     docker:
       - image: cimg/node:13.8.0
@@ -245,7 +244,7 @@ jobs:
       #     paths: [backend/node_modules]
       #     key: backend-build
      # Here's where you will add some code to rollback on failure
-     - destroy-environment      
+      - destroy-environment         
 
   deploy-frontend:
     docker:
