@@ -252,26 +252,6 @@ jobs:
     docker:
       - image: python:3.7-alpine3.11
     steps:
-      
-      - checkout
-      
-      - add_ssh_keys:
-          fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]      
-      
-      
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update ansible tar gzip nodejs npm
-            pip3 install awscli
-      - attach_workspace:
-          at: ~/
-
-      - run:
-  deploy-backend:
-    docker:
-      - image: python:3.7-alpine3.11
-    steps:
       - checkout
       - add_ssh_keys:
           fingerprints: ["50:d0:aa:fa:c5:c6:03:b1:82:27:11:2f:9f:94:58:8f"]
@@ -283,8 +263,7 @@ jobs:
             apk add --update ansible curl rsync openssh nodejs npm
             ansible --version
             pip install awscli
-            aws --version
-                             
+            aws --version                 
 
   smoke-test:
     docker:
