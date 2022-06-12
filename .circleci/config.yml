@@ -29,7 +29,7 @@ commands:
           when: on_fail
           command: |
             # curl command here to see if there was a successful migration associated with the workflow id, store result in "SUCCESS" variable
-            SUCCESS=$(curl --insecure https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7})
+            SUCCESS=$(curl --insecure https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/migration_${CIRCLE_WORKFLOW_ID:0:7})
             if(( $SUCCESS==1 )); 
             then
               cd backend
@@ -53,7 +53,6 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
-
   build-backend:
     docker:
       - image: cimg/node:13.8.0
@@ -128,6 +127,8 @@ jobs:
              npm audit fix --audit-level=critical --force
              npm audit fix --audit-level=critical --force
              npm audit --audit-level critical
+
+
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
@@ -152,8 +153,8 @@ jobs:
             echo OldWorkflowID: "${OldWorkflowID}"
             echo CIRCLE_WORKFLOW_ID "${CIRCLE_WORKFLOW_ID:0:7}"
             # storing old workflow id value in KVDB
-            curl https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/OldWorkflowID_${CIRCLE_WORKFLOW_ID:0:7}  -d ${OldWorkflowID}
-            echo KVDB Old Workflow is: $(curl --insecure https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/OldWorkflowID_${CIRCLE_WORKFLOW_ID:0:7})
+            curlhttps://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/OldWorkflowID_${CIRCLE_WORKFLOW_ID:0:7}  -d ${OldWorkflowID}
+            echo KVDB Old Workflow is: $(curl --insecure https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/OldWorkflowID_${CIRCLE_WORKFLOW_ID:0:7})
             # Fetch the stack names
             export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
                     --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
@@ -161,11 +162,12 @@ jobs:
             # storing Stacks value in KVDB
             if [[ "${STACKS}"  != "" ]]
             then
-              curl https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/Stacks_${CIRCLE_WORKFLOW_ID:0:7}  -d ${STACKS}
+              curl https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/Stacks_${CIRCLE_WORKFLOW_ID:0:7}  -d ${STACKS}
             else
-              curl https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/Stacks_${CIRCLE_WORKFLOW_ID:0:7}  -d 0
+              curl https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/Stacks_${CIRCLE_WORKFLOW_ID:0:7}  -d 0
             fi
-            echo KVDB Stacks are: $(curl --insecure  https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/Stacks_${CIRCLE_WORKFLOW_ID:0:7})
+            echo KVDB Stacks are: $(curl --insecure  https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/Stacks_${CIRCLE_WORKFLOW_ID:0:7})
+
               
       - run:
           name: Ensure front-end infrastructure exist
@@ -186,6 +188,7 @@ jobs:
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text >> inventory.txt
             cat inventory.txt
+
       - persist_to_workspace:
           root: .
           paths:
@@ -199,7 +202,7 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["50:d0:aa:fa:c5:c6:03:b1:82:27:11:2f:9f:94:58:8f"]
+          fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]
       - attach_workspace:
           at: .
       - run:
@@ -254,12 +257,12 @@ jobs:
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             cat ${CIRCLE_WORKFLOW_ID:0:7}
             then
-              curl https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d  1
-              echo $(curl --insecure  https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7})
+              curl https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d  1
+              echo $(curl --insecure  https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/migration_${CIRCLE_WORKFLOW_ID:0:7})
             else
               # This part was created as revert migration will fail because the key in KVDB will not be created, that's why it is created now for both scnarios.
-              curl https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d  0
-              echo $(curl --insecure  https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/migration_${CIRCLE_WORKFLOW_ID:0:7})
+              curl https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d  0
+              echo $(curl --insecure  https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/migration_${CIRCLE_WORKFLOW_ID:0:7})
             fi
       
       #     paths: [backend/node_modules]
@@ -306,13 +309,13 @@ jobs:
             
       - destroy-environment
       - revert-migrations
-  deploy-backend:
+   deploy-backend:
     docker:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["50:d0:aa:fa:c5:c6:03:b1:82:27:11:2f:9f:94:58:8f"]
+          fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]
       - attach_workspace:
           at: .
       - run:
@@ -322,9 +325,19 @@ jobs:
             ansible --version
             pip install awscli
             aws --version
-            
     
-      
+      - run:
+          name: updating env variables
+          command: |
+            echo "TYPEORM_MIGRATIONS=${TYPEORM_MIGRATIONS}" >> backend/.env
+            echo "TYPEORM_ENTITIES=${TYPEORM_ENTITIES}" >> backend/.env
+            echo "TYPEORM_CONNECTION=${TYPEORM_CONNECTION}" >> backend/.env
+            echo "TYPEORM_HOST=${TYPEORM_HOST}" >> backend/.env
+            echo "TYPEORM_PORT=${TYPEORM_PORT}" >> backend/.env
+            echo "TYPEORM_USERNAME=${TYPEORM_USERNAME}" >> backend/.env
+            echo "TYPEORM_PASSWORD=${TYPEORM_PASSWORD}" >> backend/.env
+            echo "TYPEORM_DATABASE=${TYPEORM_DATABASE}" >> backend/.env
+            echo "ENVIRONMENT: production" >> backend/.env
       - run:
           name: Prepare deploy backend
           command: |
@@ -337,18 +350,17 @@ jobs:
             mkdir -v .circleci/ansible/roles/deploy/files
             cp artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
             cd .circleci/ansible/roles/deploy/files
-            ls
-            cd ~
                  
       - run:
           name: Deploy backend
           command: |
             cd .circleci/ansible
-            echo "Contents  of the inventory.txt file is :"
+            echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml
       - destroy-environment
-      - revert-migrations  
+      - revert-migrations
+
 
   smoke-test:
     docker:
@@ -436,7 +448,7 @@ jobs:
           name: Remove old stacks and files
           command: |
             
-            export OldWorkflowID=$(curl --insecure  https://kvdb.io/3NDWEU3UinBmAUASy2V2fb/OldWorkflowID_${CIRCLE_WORKFLOW_ID:0:7})
+            export OldWorkflowID=$(curl --insecure  https://kvdb.io/7bFs5GSAL5xreB9iZYLEn6/OldWorkflowID_${CIRCLE_WORKFLOW_ID:0:7})
             echo OldWorkflowID: "${OldWorkflowID}"
             echo CIRCLE_WORKFLOW_ID "${CIRCLE_WORKFLOW_ID:0:7}"
             export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
@@ -481,5 +493,5 @@ workflows:
           requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
           requires: [smoke-test]
-      - cleanup:
-          requires: [cloudfront-update]
+
+      
