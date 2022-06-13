@@ -103,16 +103,19 @@ jobs:
                 
   scan-backend:
     docker:
-      - image: cimg/node:13.8.0
+      - image: circleci/node:13.8.0
     steps:
       - checkout
       - restore_cache:
           keys: [backend-build]
       - run:
-          name: Backend-audit
+          name: backend-end analyze
           command: |
-            cd backend/node_modules
-            npm audit fix --audit-level=critical --force
+             cd backend
+             npm install
+             npm audit fix --audit-level=critical --force
+             npm audit fix --audit-level=critical --force
+             npm audit --audit-level critical
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
