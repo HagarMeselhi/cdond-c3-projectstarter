@@ -237,6 +237,8 @@ jobs:
       
       - destroy-environment
       - revert-migrations                    
+
+      
   deploy-backend:
     docker:
       - image: python:3.7-alpine3.11
@@ -245,7 +247,7 @@ jobs:
       - checkout
       
       - add_ssh_keys:
-          fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]
+          fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]]      
       
       
       - run:
@@ -270,7 +272,7 @@ jobs:
             ansible-playbook -i inventory.txt deploy-backend.yml
       
       - destroy-environment
-      - revert-migrations                    
+      - revert-migrations                       
 
   smoke-test:
     docker:
