@@ -202,42 +202,44 @@ jobs:
 
   deploy-frontend:
     docker:
-      - image: python:3.7-alpine3.11
+      - image: cimg/node:13.8.0
     steps:
       - checkout
-
       - run:
-          name: Install dependencies
+          name: Install Amazon Cli
           command: |
-            apk add --update tar gzip nodejs npm
-            pip3 install awscli
-      - attach_workspace:
-         at: ~/
-
+            sudo apt update && sudo apt install -yy less
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+      - run:
+          name: Install npm
+          command: |
+            npm i
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP=$(aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicDnsName' \
-            --filters "Name=tag:Name,Values= backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-            --output text)
-            echo "BACKEND_IP = ${BACKEND_IP}"
+            echo ENVIRONMENT=production  >> frontend/.env
+            echo NODE_ENV=production >> frontend/.env
+            export BACKEND_IP=$(aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --output text)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "API_URL = ${API_URL}"
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            echo "Frontend Env ........"
             cat frontend/.env
       - run:
           name: Deploy frontend objects
           command: |
+            echo API_URL
+            cat frontend/.env
             cd frontend
-            npm install
+            npm install 
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-      
+            
       - destroy-environment
-      - revert-migrations                    
-
+      - revert-migrations
       
   deploy-backend:
     docker:
@@ -247,7 +249,7 @@ jobs:
       - checkout
       
       - add_ssh_keys:
-          fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]     
+          fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]      
       
       
       - run:
@@ -272,7 +274,7 @@ jobs:
             ansible-playbook -i inventory.txt deploy-backend.yml
       
       - destroy-environment
-      - revert-migrations                    
+      - revert-migrations        
 
   smoke-test:
     docker:
