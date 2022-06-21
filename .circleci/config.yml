@@ -1,10 +1,8 @@
 version: 2.1
-
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
     steps:
-
       - run:
           name: empty & remove S3 bucket
           when: on_fail
@@ -30,55 +28,48 @@ commands:
                     cd ~/project/backend
                     npm install
                     npm run migration:revert
-                fi         
+                fi  
 jobs:
   build-frontend:
     docker:
       - image: cimg/node:13.8.0
     steps:
       - checkout
-      - restore_cache:
-          keys: [frontend-build]
       - run:
           name: Build front-end
           command: |
             cd frontend
-            npm i
+            npm install
             npm run build
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
-
   build-backend:
     docker:
       - image: cimg/node:13.8.0
     steps:
       - checkout
-      - restore_cache:
-          keys: [backend-build]
       - run:
           name: Back-end build
           command: |
-             cd backend
-             npm i
-             npm run build
+            cd backend
+            npm install
+            npm run build
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
-
   test-frontend:
-    docker:
-      - image: cimg/node:13.8.0
-    steps:
-      - checkout
-      - restore_cache:
-          keys: [frontend-build]
-      - run:
-          name: front-end test
-          command: |
-             cd frontend
-             npm install
-             npm run test
+      docker:
+        - image: cimg/node:13.8.0
+      steps:
+        - checkout
+        - restore_cache:
+            keys: [frontend-build]
+        - run:
+            name: Frontend-test
+            command: |
+              cd frontend/node_modules
+              npm run test
                 
   test-backend:
     docker:
@@ -88,41 +79,40 @@ jobs:
       - restore_cache:
           keys: [backend-build]
       - run:
-          name: backend-end test
+          name: Backend-test
           command: |
-             cd backend
-             npm install
-             npm run test
+            cd backend/node_modules
+            npm run test
   scan-frontend:
-    docker:
-      - image: circleci/node:13.8.0
-    steps:
-      - checkout
-      - restore_cache:
-          keys: [frontend-build]
-      - run:
-          name: front-end analyze
-          command: |
-             cd frontend
-             npm install
-             npm audit fix --audit-level=critical --force
-             npm audit fix --audit-level=critical --force
-             npm audit --audit-level critical
+      docker:
+        - image: cimg/node:13.8.0
+      steps:
+        - checkout
+        - restore_cache:
+            keys: [frontend-build]
+        - run:
+            name: Frontend-audit
+            command: |
+              cd frontend/node_modules
+              npm install oauth-sign@^0.9.0
+              npm audit fix --audit-level=critical --force
+              npm audit fix --force
+                
   scan-backend:
     docker:
-      - image: circleci/node:13.8.0
+      - image: cimg/node:13.8.0
     steps:
       - checkout
       - restore_cache:
           keys: [backend-build]
       - run:
-          name: backend-end analyze
+          name: Backend-audit
           command: |
-             cd backend
-             npm install
-             npm audit fix --audit-level=critical --force
-             npm audit fix --audit-level=critical --force
-             npm audit --audit-level critical
+            cd backend
+            npm install
+            npm audit fix --audit-level=critical --force
+            npm audit fix --audit-level=critical --force
+            npm audit --audit-level critical
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
@@ -156,46 +146,39 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-
       - destroy-environment
-
   configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.11
     steps:
+      
       - checkout
+      
       - add_ssh_keys:
           fingerprints: ["5a:8e:16:f9:19:59:0d:45:1b:a5:66:8c:db:95:77:c6"]
+      
       - attach_workspace:
-          at: .
+          at: ~/
+      
       - run:
           name: Install dependencies
-          command: |  
-            apk add --update ansible
-            apk add --update gzip
-            apk add --update tar
-            apk add --update npm
-            apk add --update nodejs
-            apk add --update curl
-            pip install awscli
-            
+          command: |
+            apk add --update ansible tar gzip
+            pip3 install awscli
       - run:
           name: Configure server
           command: |
             cd .circleci/ansible
-            cat inventory.txt
             ansible-playbook -i inventory.txt configure-server.yml
-      # Here's where you will add some code to rollback on failure 
-      - destroy-environment     
+      
+      - destroy-environment
   run-migrations:
     docker:
       - image:  cimg/node:13.8.0
     steps:
       - checkout
-
       - restore_cache:
           keys: [backend-build]
-
       - run:
           name: Install awscli for rollback , and Run migrations
           command: |
@@ -248,6 +231,7 @@ jobs:
             
       - destroy-environment
       - revert-migrations
+      
   deploy-backend:
     docker:
       - image: python:3.7-alpine3.11
@@ -266,7 +250,6 @@ jobs:
             pip3 install awscli
       - attach_workspace:
           at: ~/
-
       - run:
           name: Deploy backend
           command: |
@@ -281,8 +264,7 @@ jobs:
             ansible-playbook -i inventory.txt deploy-backend.yml
       
       - destroy-environment
-      - revert-migrations     
-
+      - revert-migrations        
   smoke-test:
     docker:
       - image: python:3.7-alpine3.11
@@ -329,27 +311,23 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            yum update -y 
-            yum install -y tar gzip 
-            yum install -y curl
+      - run: yum install -y tar gzip
       - run:
           name: Update cloudfront distribution
           command: |
-
-              aws cloudformation deploy \
-                --template-file .circleci/files/cloudfront.yml \
-                --stack-name InitialStack  \
-                --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
-                --tags project=udapeople
-
+            aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
+              --stack-name InitialStack \
+              --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --tags project=udapeople
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/files/oldworkflowid.txt
             
-      
-      - destroy-environment
-      - revert-migrations 
- 
+      - destroy-environment   
+      - revert-migrations
+          
 workflows:
   default:
     jobs:
@@ -359,17 +337,18 @@ workflows:
           requires: [build-frontend]
       - test-backend:
           requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
       - scan-frontend:
           requires: [build-frontend]
+      - scan-backend:
+          requires: [build-backend]
       - deploy-infrastructure:
           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          filters:
+          filters: #filter to run deployment jobs on master branch only
             branches:
-              only: [master]
+              only:
+                - master
       - configure-infrastructure:
-          requires: [deploy-infrastructure]
+         requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
       - deploy-frontend:
@@ -379,6 +358,4 @@ workflows:
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
-          requires: [smoke-test]
-
-      
+requires: [smoke-test]
