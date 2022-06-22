@@ -378,7 +378,7 @@ jobs:
 
           
 
-workflows:j
+workflows:
   default:
     jobs:
       - build-frontend
