@@ -259,7 +259,6 @@ jobs:
             pip3 install awscli
       - attach_workspace:
           at: ~/
-
       - run:
           name: Deploy backend
           command: |
@@ -274,7 +273,7 @@ jobs:
             ansible-playbook -i inventory.txt deploy-backend.yml
       
       - destroy-environment
-      - revert-migrations        
+      - revert-migrations     
 
   smoke-test:
     docker:
