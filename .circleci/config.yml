@@ -334,19 +334,57 @@ jobs:
       - run:
           name: Update cloudfront distribution
           command: |
+
+              echo $(aws cloudfront list-distributions | grep udapeople | cut -d "-" -f 3 | cut -d "." -f 1) > ./.circleci/files/oldworkflowid.txt
+
               aws cloudformation deploy \
                 --template-file .circleci/files/cloudfront.yml \
                 --stack-name InitialStack  \
                 --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
                 --tags project=udapeople
+          - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/files/oldworkflowid.txt
             
       - destroy-environment   
       - revert-migrations
 
+  cleanup:
+      docker:
+        - image: amazon/aws-cli
+      steps:
+        - checkout
+
+        - run: yum install -y tar gzip
+        
+        - attach_workspace:
+           at: ~/
+
+        - run:
+            name: Get old stack workflow id & Remove old stacks and files
+            command: |
+              # Fetch the Old workflow ID
+              export OldWorkflowID=$(cat ./.circleci/files/oldworkflowid.txt )
+              echo OldWorkflowID: "${OldWorkflowID}"
+              echo CIRCLE_WORKFLOW_ID: "${CIRCLE_WORKFLOW_ID:0:7}"
+              # Fetch the stack names          
+              export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+                      --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
+              echo Stack names: "${STACKS[@]}"
+              if  [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "${OldWorkflowID}" ]] 
+              then
+                aws s3 rm s3://udapeople-${OldWorkflowID} --recursive
+                aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+                aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+              else
+                echo "No old Stacks to Delete"
+              fi
+
 
           
 
-workflows:
+workflows:j
   default:
     jobs:
       - build-frontend
